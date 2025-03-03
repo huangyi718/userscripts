@@ -5,27 +5,27 @@
 ## 安装步骤
 
 ### 如果已安装篡改猴（Tampermonkey）
-直接跳转至 [第 3 步](#3安装脚本)。
+直接跳转至 [第 3 步](###3安装脚本)。
 
 ### 1. 安装篡改猴（Tampermonkey）扩展
 
-1. 打开浏览器，访问以下网址：
+1). 打开浏览器，访问以下网址：
    
    [篡改猴扩展下载](https://microsoftedge.microsoft.com/addons/detail/%E7%AF%A1%E6%94%B9%E7%8C%B4/iikmkjmpaadaobahmlepeloendndfphd)
    
-2. 将该扩展添加到浏览器。
+2). 将该扩展添加到浏览器。
 
 ### 2. 启用开发者模式
 
-1. 点击浏览器右上角的 **三点菜单**，选择 **扩展**。
+1). 点击浏览器右上角的 **三点菜单**，选择 **扩展**。
    
    ![image](https://github.com/huangyi718/userscripts/blob/main/step/1.png)
    
-2. 进入 **管理扩展**。
+2). 进入 **管理扩展**。
    
    ![image](https://github.com/huangyi718/userscripts/blob/main/step/2.png)
    
-3. **开启开发者模式**。
+3). **开启开发者模式**。
    
    ![image](https://github.com/huangyi718/userscripts/blob/main/step/3.png)
 
