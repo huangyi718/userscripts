@@ -7,7 +7,6 @@
 将这个扩展添加到浏览器中。
 
 2.打开开发者模式
-![image](https://github.com/user-attachments/assets/caf0a49f-7313-4b34-b055-e16036fd8c1c)
 
 
 2.安装脚本，在浏览器中输入这个地址：
