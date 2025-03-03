@@ -7,11 +7,14 @@
 将这个扩展添加到浏览器中。
 
 2.打开开发者模式
-（1）![image](https://github.com/huangyi718/userscripts/blob/main/step/1.png)
-（2）![image](https://github.com/huangyi718/userscripts/blob/main/step/2.png)
-（3）![image](https://github.com/huangyi718/userscripts/blob/main/step/3.png)
+（1）点击浏览器右上角的三个点点，选择扩展
+![image](https://github.com/huangyi718/userscripts/blob/main/step/1.png)
 
+（2）进入管理扩展
+![image](https://github.com/huangyi718/userscripts/blob/main/step/2.png)
 
+（3）打开开发者选项
+![image](https://github.com/huangyi718/userscripts/blob/main/step/3.png)
 
 3.安装脚本，在浏览器中输入这个地址：
 https://cdn.jsdelivr.net/gh/huangyi718/userscripts@main/%E6%88%90%E7%BB%A9%E5%BD%95%E5%85%A5.user.js
