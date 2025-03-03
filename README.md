@@ -1,10 +1,14 @@
 脚本不会泄漏任何信息，它的功能只是类似一个插件而已，本教程不存在仍何违反互联网的规定，不需要科学上网。
 
-如果已经安装了篡改候，就直接安装脚本（第二步）就行了（会用脚本的人都知道），没用就进行第一步
+如果已经安装了篡改候，就直接安装脚本（第3步）就行了（会用脚本的人都知道），没用就进行第1步
 
 1.打开浏览器输入网址：
    https://microsoftedge.microsoft.com/addons/detail/%E7%AF%A1%E6%94%B9%E7%8C%B4/iikmkjmpaadaobahmlepeloendndfphd
 将这个扩展添加到浏览器中。
+
+2.打开开发者模式
+![image](https://github.com/user-attachments/assets/caf0a49f-7313-4b34-b055-e16036fd8c1c)
+
 
 2.安装脚本，在浏览器中输入这个地址：
 https://cdn.jsdelivr.net/gh/huangyi718/userscripts@main/%E6%88%90%E7%BB%A9%E5%BD%95%E5%85%A5.user.js
