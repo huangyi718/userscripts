@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.6
 // @description  在网页右上角添加 Excel 上传按钮，支持 Vue/React 单页应用和 iframe 动态加载，逐个录入成绩并记录情况
-// @author       You
+// @author       HUANGYI_CQWU
 // @match        https://jwmis.cqwu.edu.cn/*
 // @grant        none
 // @require      https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
