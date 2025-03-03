@@ -8,12 +8,15 @@
 
 2.打开开发者模式
 （1）点击浏览器右上角的三个点点，选择扩展
+
 ![image](https://github.com/huangyi718/userscripts/blob/main/step/1.png)
 
 （2）进入管理扩展
+
 ![image](https://github.com/huangyi718/userscripts/blob/main/step/2.png)
 
 （3）打开开发者选项
+
 ![image](https://github.com/huangyi718/userscripts/blob/main/step/3.png)
 
 3.安装脚本，在浏览器中输入这个地址：
