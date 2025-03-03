@@ -7,14 +7,18 @@
 将这个扩展添加到浏览器中。
 
 2.打开开发者模式
+（1）![image](https://github.com/huangyi718/userscripts/blob/main/step/1.png)
+（2）![image](https://github.com/huangyi718/userscripts/blob/main/step/2.png)
+（3）![image](https://github.com/huangyi718/userscripts/blob/main/step/3.png)
 
 
-2.安装脚本，在浏览器中输入这个地址：
+
+3.安装脚本，在浏览器中输入这个地址：
 https://cdn.jsdelivr.net/gh/huangyi718/userscripts@main/%E6%88%90%E7%BB%A9%E5%BD%95%E5%85%A5.user.js
 
-3.脚本已经安装成功，在成绩系统中登记成绩时就可以看到多了一个上传成绩的选项卡。
+4.脚本已经安装成功，在成绩系统中登记成绩时就可以看到多了一个上传成绩的选项卡。
 
-4.上传成绩的excel，第一列为姓名，第二列为学号，第三列为成绩。
+5.上传成绩的excel，第一列为姓名，第二列为学号，第三列为成绩。
 
 脚本里面设置了将成绩系统里面的姓名和学号进行了比对，如果两个信息相同，就将excel中的成绩录入到系统中，如果不相同就会输出日志，并保存在excel中，所以成绩录入完成之后有个excel，需要下载下来确认一下。
 
