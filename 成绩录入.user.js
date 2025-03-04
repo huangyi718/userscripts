@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.6
 // @description  在网页右上角添加 Excel 上传按钮，支持 Vue/React 单页应用和 iframe 动态加载，逐个录入成绩并记录情况
-// @author       HUANGYI_CQWU
+// @author       You
 // @match        https://jwmis.cqwu.edu.cn/*
 // @grant        none
 // @require      https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
@@ -27,18 +27,24 @@
 
             // **设置按钮样式**
             Object.assign(fileInput.style, {
+                width: "170px",  // 调小按钮宽度
+                height: "48px",  // 适当调整高度
                 position: "fixed",
-                top: "10px",
-                left: "50%",
+                top: "40px",
+                left: "75%",
                 transform: "translateX(-50%)",
                 zIndex: "9999",
                 padding: "10px",
-                background: "#007bff",
-                color: "#fff",
+                background: "#87CEFA",
+                color: "#000",
                 border: "none",
                 borderRadius: "5px",
                 cursor: "pointer",
-                fontSize: "16px"
+                fontSize: "13px",
+                textAlign: "center",
+                display: "flex",         // 使用 flex 布局
+                alignItems: "center",    // 垂直居中
+                justifyContent: "center" // 水平居中
             });
 
             document.body.appendChild(fileInput);
