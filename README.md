@@ -33,7 +33,7 @@
 
 在浏览器地址栏输入以下地址并访问：
 
-[点击安装脚本](https://cdn.jsdelivr.net/gh/huangyi718/userscripts@latest/成绩录入.user.js)
+[点击安装脚本](https://cdn.jsdelivr.net/gh/huangyi718/userscripts/成绩录入.user.js)
 
 ### 4. 使用脚本
 
