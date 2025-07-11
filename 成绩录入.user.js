@@ -26,7 +26,27 @@
             fileInput.id = "excelUploadBtn";
             fileInput.accept = ".xlsx, .xls";
 
-          
+            // **设置按钮样式**
+            Object.assign(fileInput.style, {
+                width: "170px",  // 调小按钮宽度
+                height: "48px",  // 适当调整高度
+                position: "fixed",
+                top: "40px",
+                left: "75%",
+                transform: "translateX(-50%)",
+                zIndex: "9999",
+                padding: "10px",
+                background: "#87CEFA",
+                color: "#000",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                fontSize: "13px",
+                textAlign: "center",
+                display: "flex",         // 使用 flex 布局
+                alignItems: "center",    // 垂直居中
+                justifyContent: "center" // 水平居中
+            });
 
             document.body.appendChild(fileInput);
             console.log("✅ 上传按钮已插入！");
