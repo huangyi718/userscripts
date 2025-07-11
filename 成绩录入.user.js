@@ -7,6 +7,7 @@
 // @include      *://*.cqwu.edu.cn/*
 // @grant        none
 // @require      https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
+// @updateURL    https://raw.githubusercontent.com/huangyi718/userscripts/main/成绩录入.user.js
 // ==/UserScript==
 (function () {
     'use strict';
