@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Excel 上传按钮（支持 iframe 和动态加载）
 // @namespace    http://tampermonkey.net/
-// @version      1.6
+// @version      2.1
 // @description  在网页右上角添加 Excel 上传按钮，支持 Vue/React 单页应用和 iframe 动态加载，逐个录入成绩并记录情况
 // @author       You
 // @include      *://*.cqwu.edu.cn/*
@@ -65,19 +65,78 @@
                     let sheet = workbook.Sheets[workbook.SheetNames[0]];
                     let jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-                    //console.log("📌 Excel 数据解析完成：", jsonData);
+                    console.log("📌 Excel 数据解析完成，共", jsonData.length, "行");
 
                     let students = [];
+                    let startRowFound = false;
+                    let currentIndex = 1; // 记录当前预期的序号
+
+                    /**
+                     * 处理数据行
+                     */
+                    function processDataRow(row, index) {
+                        // 检查序号的连续性
+                        const rowIndex = row[0];
+                        const rowIndexStr = String(rowIndex).trim();
+
+                        // 如果当前行序号为空或不是预期的序号，停止处理
+                        if (!rowIndexStr || parseInt(rowIndexStr) !== currentIndex) {
+                            console.log(`📌 序号连续性中断，预期 ${currentIndex}，实际 ${rowIndexStr}，行号 ${index + 1}，停止处理`);
+                            return false; // 停止处理后续行
+                        }
+
+                        // 从序号为1的行开始处理数据
+                        if (row.length >= 4) {
+                            let studentId = String(row[1]).trim(); // 学号在第2列
+                            let name = row[2] !== undefined ? String(row[2]).trim() : '';  // 姓名在第3列
+                            let score = row[row.length - 1]; // 成绩在最后一列
+
+                            // 尝试将成绩转换为数字并四舍五入
+                            if (typeof score === 'string') {
+                                score = score.replace(/,/g, ''); // 移除可能的千分位逗号
+                                score = parseFloat(score);
+                            }
+
+                            if (!isNaN(score)) {
+                                // 四舍五入到整数
+                                score = Math.round(score);
+                            }
+
+                            if (studentId && name) { // 确保学号和姓名不为空
+                                students.push({ name, studentId, score, rowIndex: index + 1 });  // 记录行号
+                                console.log(`📌 成功解析学生: ${name} (${studentId}), 成绩: ${score}`);
+                            }
+
+                            // 增加当前预期的序号
+                            currentIndex++;
+                            return true;
+                        }
+
+                        return false;
+                    }
+
                     jsonData.forEach((row, index) => {
-                        if (row.length >= 3) {
-                            let name = row[0].trim();  // 姓名
-                            let studentId = String(row[1]).trim(); // 学号
-                            let score = row[2]; // 成绩
-                            students.push({ name, studentId, score, rowIndex: index + 2 });  // 将行号加到数组中，便于后续处理
+                        // 查找序号为1的行作为数据起始行
+                        if (!startRowFound) {
+                            if (row.length > 0 && String(row[0]).trim() === "1") {
+                                startRowFound = true;
+                                console.log("📌 找到数据起始行，行号:", index + 1);
+                            } else {
+                                return; // 未找到起始行，继续查找
+                            }
+                        }
+
+                        // 从起始行开始处理数据
+                        if (startRowFound) {
+                            const shouldContinue = processDataRow(row, index);
+                            if (!shouldContinue) {
+                                // 序号连续性中断，停止处理
+                                return;
+                            }
                         }
                     });
 
-                    //console.log("📌 解析后的学生数据：", students);
+                    console.log("📌 解析后的学生数据：", students.length, "条记录");
 
                     // **确保 iframe 加载完成**
                     setTimeout(() => {
@@ -98,7 +157,7 @@
 
                         // **首次填充成绩**
                         processScores(iframeDocument, students);
-                    }, 20);  // 延时 2 秒，等待 iframe 内容加载
+                    }, 20);  // 延时 20 毫秒，等待 iframe 内容加载
                 };
 
                 reader.readAsArrayBuffer(file);
@@ -127,7 +186,7 @@
             return;
         }
 
-        //console.log("✅ 成功找到学号列:", elements);
+        console.log("✅ 成功找到学号列:", elements.length, "条记录");
 
         // **用来保存每一行的记录**
         let resultData = [];
@@ -144,21 +203,22 @@
 
                 // **匹配 Excel 数据**
                 let student = students.find(s => s.studentId === studentId && s.name === studentName);
-                console.log(`********`);
-                console.log(student);
+
                 if (student) {
                     // **找到该学生，录入成绩**
                     let scoreInput = iframeDocument.getElementById(`${rowPrefix}_zhcj_`); // 获取成绩输入框
                     if (scoreInput) {
-                        scoreInput.value = student.score;
+                        // 使用四舍五入后的成绩
+                        let displayScore = student.score;
+                        scoreInput.value = displayScore;
 
                         // **手动触发 input 事件**
                         scoreInput.dispatchEvent(new Event("input", { bubbles: true }));
 
-                        console.log(`✅ 成功填充成绩: ${student.score} -> ${rowPrefix}_zhcj_`);
+                        console.log(`✅ 成功填充成绩: ${displayScore} -> ${rowPrefix}_zhcj_`);
 
                         // **记录成绩和备注已录入**
-                        resultData.push([student.name, student.studentId, student.score, "已录入"]);
+                        resultData.push([student.name, student.studentId, displayScore, "已录入"]);
                     }
                 } else {
                     // **没有该生的成绩**
@@ -171,12 +231,17 @@
         });
 
         // **生成并保存新的 Excel 文件**
-        let newWorkbook = XLSX.utils.book_new();
-        let newSheet = XLSX.utils.aoa_to_sheet(resultData);
-        XLSX.utils.book_append_sheet(newWorkbook, newSheet, "成绩录入情况");
+        if (resultData.length > 0) {
+            let newWorkbook = XLSX.utils.book_new();
+            let newSheet = XLSX.utils.aoa_to_sheet(resultData);
+            XLSX.utils.book_append_sheet(newWorkbook, newSheet, "成绩录入情况");
 
-        // **下载 Excel 文件**
-        const newFileName = "成绩录入情况.xlsx";
-        XLSX.writeFile(newWorkbook, newFileName);
+            // **下载 Excel 文件**
+            const newFileName = "成绩录入情况_" + new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") + ".xlsx";
+            XLSX.writeFile(newWorkbook, newFileName);
+            console.log("✅ 成绩录入情况已保存到文件:", newFileName);
+        } else {
+            console.log("⚠️ 没有找到需要处理的成绩数据");
+        }
     }
 })();
