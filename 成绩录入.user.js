@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Excel 上传按钮（支持 iframe 和动态加载）
 // @namespace    http://tampermonkey.net/
-// @version      2.2  // 已递增版本号
+// @version      2.3  
 // @description  在网页右上角添加 Excel 上传按钮...
 // @author       You
 // @include      *://*.cqwu.edu.cn/*
