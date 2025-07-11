@@ -33,13 +33,13 @@
 (1) **可以直接使用综合成绩表**。
 在浏览器地址栏输入以下地址并访问：
 
-[点击安装脚本](https://cdn.jsdelivr.net/gh/huangyi718/userscripts/成绩录入.user.js)
+https://cdn.jsdelivr.net/gh/huangyi718/userscripts/direct.user.js
 
 （2）**如果不想直接使用综合成绩表**。
 
 在浏览器地址栏输入以下地址并访问：
 
-[点击安装脚本](https://cdn.jsdelivr.net/gh/huangyi718/userscripts/成绩录入.user.js)
+https://cdn.jsdelivr.net/gh/huangyi718/userscripts/indirect.user.js
 
 ### 4. 使用脚本
 
