@@ -10,7 +10,7 @@
 // @grant        GM_addStyle
 // @run-at       document-end
 // @updateURL    https://raw.githubusercontent.com/huangyi718/userscripts/main/fif-helper.user.js
-// @downloadURL  https://raw.githubusercontent.com/huangyi718/userscripts/main//fif-helper.user.js
+// @downloadURL  https://raw.githubusercontent.com/huangyi718/userscripts/main/fif-helper.user.js
 // ==/UserScript==
 
 (function() {
