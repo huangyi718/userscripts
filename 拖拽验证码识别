@@ -1,0 +1,487 @@
+(async () => {
+  'use strict';
+
+  const KEY = '__cxTemplateTrial';
+  if (window[KEY]) return console.warn('测试正在运行，请勿重复执行。');
+  window[KEY] = true;
+
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  let release = null;
+  let marker = null;
+
+  try {
+    const root = document.querySelector('#cx_image_margin');
+    const bg = root?.querySelector('#cx_imgBg');
+    const piece = root?.querySelector('.cx_imgBtn');
+    const small = piece?.querySelector('img');
+    const handle = root?.querySelector('.cx_rightBtn');
+
+    if (!bg || !small || !handle?.getBoundingClientRect().width) {
+      throw Error('请先打开验证码并等待图片显示。');
+    }
+
+    const getBgURL = () => getComputedStyle(bg).backgroundImage
+      .match(/url\(["']?(.*?)["']?\)/)?.[1];
+
+    const getSmallURL = () => small.currentSrc || small.src;
+    const bgURL = getBgURL();
+    const smallURL = getSmallURL();
+
+    if (!bgURL || !smallURL) throw Error('未找到当前背景图或拼图图片。');
+
+    function checkCurrent() {
+      if (
+        !root.isConnected ||
+        !handle.getBoundingClientRect().width ||
+        getBgURL() !== bgURL ||
+        getSmallURL() !== smallURL
+      ) {
+        throw Error('验证码已刷新或关闭，请对新验证码重新运行。');
+      }
+    }
+
+    async function loadImage(url) {
+      const image = new Image();
+      image.crossOrigin = 'anonymous';
+      image.src = url;
+
+      try {
+        await image.decode();
+      } catch {
+        throw Error('图片加载失败，可能是跨域限制。');
+      }
+
+      return image;
+    }
+
+    function readPixels(image, width, height) {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(image, 0, 0, width, height);
+
+      try {
+        return ctx.getImageData(0, 0, width, height).data;
+      } catch {
+        throw Error('浏览器禁止读取跨域图片像素。');
+      }
+    }
+
+    const [backgroundImage, pieceImage] = await Promise.all([
+      loadImage(bgURL),
+      loadImage(smallURL)
+    ]);
+
+    checkCurrent();
+
+    const W = bg.clientWidth;
+    const H = bg.clientHeight;
+    if (!W || !H) throw Error('验证码图片尺寸异常。');
+
+    const backgroundPixels = readPixels(backgroundImage, W, H);
+    const sw = pieceImage.naturalWidth;
+    const sh = pieceImage.naturalHeight;
+    const sourcePixels = readPixels(pieceImage, sw, sh);
+
+    // 从小拼图图片四周向内清除透明或接近底色的区域。
+    // 适用于透明底或基本一致的纯色底；不适用时会停止。
+    const corners = [
+      0,
+      sw - 1,
+      (sh - 1) * sw,
+      sw * sh - 1
+    ];
+
+    const backgroundColors = corners.map(index => [
+      sourcePixels[index * 4],
+      sourcePixels[index * 4 + 1],
+      sourcePixels[index * 4 + 2]
+    ]);
+
+    function isBackground(index) {
+      if (sourcePixels[index * 4 + 3] < 180) return true;
+
+      return backgroundColors.some(color => {
+        const dr = sourcePixels[index * 4] - color[0];
+        const dg = sourcePixels[index * 4 + 1] - color[1];
+        const db = sourcePixels[index * 4 + 2] - color[2];
+        return dr * dr + dg * dg + db * db < 30 * 30;
+      });
+    }
+
+    const removed = new Uint8Array(sw * sh);
+    const queue = new Int32Array(sw * sh);
+    let head = 0;
+    let tail = 0;
+
+    function enqueue(index) {
+      if (!removed[index] && isBackground(index)) {
+        removed[index] = 1;
+        queue[tail++] = index;
+      }
+    }
+
+    for (let x = 0; x < sw; x++) {
+      enqueue(x);
+      enqueue((sh - 1) * sw + x);
+    }
+
+    for (let y = 0; y < sh; y++) {
+      enqueue(y * sw);
+      enqueue(y * sw + sw - 1);
+    }
+
+    while (head < tail) {
+      const index = queue[head++];
+      const x = index % sw;
+      const y = Math.floor(index / sw);
+
+      if (x > 0) enqueue(index - 1);
+      if (x + 1 < sw) enqueue(index + 1);
+      if (y > 0) enqueue(index - sw);
+      if (y + 1 < sh) enqueue(index + sw);
+    }
+
+    // 保留最大的连通区域，排除零散噪点。
+    const seen = new Uint8Array(sw * sh);
+    let largest = [];
+
+    for (let start = 0; start < sw * sh; start++) {
+      if (removed[start] || seen[start] ||
+          sourcePixels[start * 4 + 3] < 180) continue;
+
+      const component = [start];
+      seen[start] = 1;
+
+      for (let q = 0; q < component.length; q++) {
+        const index = component[q];
+        const x = index % sw;
+        const y = Math.floor(index / sw);
+        const neighbors = [];
+
+        if (x > 0) neighbors.push(index - 1);
+        if (x + 1 < sw) neighbors.push(index + 1);
+        if (y > 0) neighbors.push(index - sw);
+        if (y + 1 < sh) neighbors.push(index + sw);
+
+        for (const next of neighbors) {
+          if (!seen[next] && !removed[next] &&
+              sourcePixels[next * 4 + 3] >= 180) {
+            seen[next] = 1;
+            component.push(next);
+          }
+        }
+      }
+
+      if (component.length > largest.length) largest = component;
+    }
+
+    if (largest.length < 100) {
+      throw Error('无法从小图中提取有效拼图，未执行拖动。');
+    }
+
+    let minX = sw, minY = sh, maxX = 0, maxY = 0;
+    const mask = new Uint8Array(sw * sh);
+
+    for (const index of largest) {
+      mask[index] = 1;
+      const x = index % sw;
+      const y = Math.floor(index / sw);
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+    }
+
+    // 将小图的自然像素换算到背景的 CSS 像素坐标。
+    const bgRect = bg.getBoundingClientRect();
+    const imageRect = small.getBoundingClientRect();
+    const displayScaleX = bgRect.width / W;
+    const displayScaleY = bgRect.height / H;
+    const sx = imageRect.width / sw / displayScaleX;
+    const sy = imageRect.height / sh / displayScaleY;
+
+    const templateW = Math.ceil((maxX - minX + 1) * sx);
+    const templateH = Math.ceil((maxY - minY + 1) * sy);
+
+    if (
+      !Number.isFinite(sx) || sx <= 0 ||
+      !Number.isFinite(sy) || sy <= 0 ||
+      templateW < 10 || templateH < 10 ||
+      templateW > W * 0.45 || templateH > H * 0.65
+    ) {
+      throw Error('提取出的拼图尺寸异常，可能不是纯色底小图。');
+    }
+
+    const luminance = (data, index) =>
+      data[index * 4] * .299 +
+      data[index * 4 + 1] * .587 +
+      data[index * 4 + 2] * .114;
+
+    const backgroundGray = new Float32Array(W * H);
+    for (let i = 0; i < backgroundGray.length; i++) {
+      backgroundGray[i] = luminance(backgroundPixels, i);
+    }
+
+    const samples = [];
+
+    // 使用拼图内部像素，减少外缘描边、JPEG 压缩的影响。
+    for (let y = 2; y < templateH - 2; y += 2) {
+      for (let x = 2; x < templateW - 2; x += 2) {
+        const sourceX = Math.round(minX + x / sx);
+        const sourceY = Math.round(minY + y / sy);
+
+        if (
+          sourceX < 2 || sourceX >= sw - 2 ||
+          sourceY < 2 || sourceY >= sh - 2
+        ) continue;
+
+        const index = sourceY * sw + sourceX;
+        if (
+          !mask[index] ||
+          !mask[index - 2] || !mask[index + 2] ||
+          !mask[index - 2 * sw] || !mask[index + 2 * sw]
+        ) continue;
+
+        samples.push({
+          x, y,
+          value: luminance(sourcePixels, index)
+        });
+      }
+    }
+
+    if (samples.length < 40) {
+      throw Error('有效拼图像素不足，未执行拖动。');
+    }
+
+    const mean = samples.reduce((sum, p) => sum + p.value, 0) /
+                 samples.length;
+
+    let templateVariance = 0;
+    for (const sample of samples) {
+      sample.centered = sample.value - mean;
+      templateVariance += sample.centered ** 2;
+    }
+
+    if (templateVariance / samples.length < 25) {
+      throw Error('拼图纹理太少，无法可靠匹配。');
+    }
+
+    // 归一化相关性匹配，可容忍一定的亮度和对比度差异。
+    function matchAt(x, y) {
+      let sum = 0, sumSquared = 0, correlation = 0;
+
+      for (const sample of samples) {
+        const value = backgroundGray[
+          (y + sample.y) * W + x + sample.x
+        ];
+        sum += value;
+        sumSquared += value * value;
+        correlation += sample.centered * value;
+      }
+
+      const variance = sumSquared - sum * sum / samples.length;
+      if (variance <= 1) return -1;
+
+      return correlation / Math.sqrt(templateVariance * variance);
+    }
+
+    const initialVisibleX =
+      (imageRect.left - bgRect.left) / displayScaleX + minX * sx;
+
+    const candidates = [];
+
+    for (let y = 0; y <= H - templateH; y += 2) {
+      for (
+        let x = Math.max(0, Math.ceil(initialVisibleX + 15));
+        x <= W - templateW;
+        x += 2
+      ) {
+        candidates.push({ x, y, score: matchAt(x, y) });
+      }
+
+      if (y % 20 === 0) {
+        await sleep(0);
+        checkCurrent();
+      }
+    }
+
+    candidates.sort((a, b) => b.score - a.score);
+    let best = candidates[0];
+    if (!best) throw Error('没有可用的匹配区域。');
+
+    const coarse = best;
+    for (let y = Math.max(0, coarse.y - 2);
+         y <= Math.min(H - templateH, coarse.y + 2); y++) {
+      for (let x = Math.max(0, coarse.x - 2);
+           x <= Math.min(W - templateW, coarse.x + 2); x++) {
+        const score = matchAt(x, y);
+        if (score > best.score) best = { x, y, score };
+      }
+    }
+
+    const alternative = candidates.find(p => Math.abs(p.x - best.x) > 12);
+
+    console.table({
+      best,
+      alternative: alternative || {},
+      template: {
+        width: templateW,
+        height: templateH,
+        samples: samples.length
+      }
+    });
+
+    // 分数是相似度，不是成功概率；阈值只是实验性保护。
+    if (
+      best.score < .65 ||
+      (alternative && best.score - alternative.score < .06)
+    ) {
+      throw Error('匹配不够明确，已停止，没有拖动。');
+    }
+
+    checkCurrent();
+
+    // 绿色框表示本次匹配位置。
+    marker = document.createElement('div');
+    Object.assign(marker.style, {
+      position: 'fixed',
+      left: `${bgRect.left + best.x * displayScaleX}px`,
+      top: `${bgRect.top + best.y * displayScaleY}px`,
+      width: `${templateW * displayScaleX}px`,
+      height: `${templateH * displayScaleY}px`,
+      border: '2px solid #00e676',
+      boxSizing: 'border-box',
+      pointerEvents: 'none',
+      zIndex: '2147483647'
+    });
+    document.body.appendChild(marker);
+
+    // 扣除小图内部留白，目标对应图片元素的左边缘。
+    const targetImageLeft =
+      bgRect.left + (best.x - minX * sx) * displayScaleX;
+
+    const handleRect = handle.getBoundingClientRect();
+    const trackRect = handle.parentElement.getBoundingClientRect();
+    const startX = handleRect.left + handleRect.width / 2;
+    const startY = handleRect.top + handleRect.height / 2;
+    const maxMove = trackRect.right - handleRect.right;
+    const desiredMove = targetImageLeft - small.getBoundingClientRect().left;
+
+    if (desiredMove <= 0 || maxMove <= 0) {
+      throw Error('匹配位置不在有效拖动方向内。');
+    }
+
+    let currentX = startX;
+
+    function emit(target, type, buttons) {
+      target.dispatchEvent(new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: currentX,
+        clientY: startY,
+        button: 0,
+        buttons
+      }));
+    }
+
+    async function moveTo(offset) {
+      checkCurrent();
+
+      if (!Number.isFinite(offset) || offset < 0 || offset > maxMove) {
+        throw Error('校准后的距离超出滑轨范围。');
+      }
+
+      currentX = startX + offset;
+      emit(document, 'mousemove', 1);
+      await sleep(100);
+    }
+
+    async function stableLeft() {
+      let previous = small.getBoundingClientRect().left;
+      let count = 0;
+
+      for (let i = 0; i < 20; i++) {
+        await sleep(40);
+        checkCurrent();
+        const current = small.getBoundingClientRect().left;
+
+        count = Math.abs(current - previous) < .2 ? count + 1 : 0;
+        if (count >= 3) return current;
+        previous = current;
+      }
+
+      throw Error('拼图位置未稳定。');
+    }
+
+    // 先展示识别框，再进行一次拖动。
+    await sleep(700);
+    checkCurrent();
+
+    release = () => emit(document, 'mouseup', 0);
+    emit(handle, 'mousedown', 1);
+    await sleep(80);
+
+    const firstProbe = Math.min(12, desiredMove / 4, maxMove / 4);
+    const secondProbe = Math.min(36, desiredMove / 2, maxMove / 2);
+
+    if (secondProbe - firstProbe < 4) {
+      throw Error('可用校准距离不足。');
+    }
+
+    await moveTo(firstProbe);
+    const firstLeft = await stableLeft();
+    await moveTo(secondProbe);
+    const secondLeft = await stableLeft();
+
+    const ratio = (secondLeft - firstLeft) / (secondProbe - firstProbe);
+
+    if (!Number.isFinite(ratio) || secondLeft - firstLeft < 1) {
+      throw Error('拼图未响应模拟拖动。');
+    }
+
+    const targetOffset =
+      secondProbe + (targetImageLeft - secondLeft) / ratio;
+
+    console.table({
+      calibration: {
+        ratio,
+        targetImageLeft,
+        targetOffset,
+        maxMove
+      }
+    });
+
+    if (targetOffset < 0 || targetOffset > maxMove) {
+      throw Error('目标超出滑轨，请保留上面的匹配与校准数据。');
+    }
+
+    const steps = Math.max(12, Math.ceil(Math.abs(targetOffset - secondProbe) / 7));
+    for (let i = 1; i <= steps; i++) {
+      await moveTo(secondProbe + (targetOffset - secondProbe) * i / steps);
+    }
+
+    for (let i = 0; i < 3; i++) {
+      const error = targetImageLeft - await stableLeft();
+      if (Math.abs(error) <= 1) break;
+      await moveTo(currentX - startX + error / ratio);
+    }
+
+    release();
+    release = null;
+    console.log('本次拖动结束，是否通过请以页面提示为准。');
+
+  } catch (error) {
+    console.warn('[拼图匹配实验]', error.message);
+  } finally {
+    try {
+      // 发生异常也释放鼠标，组件可能因此进行一次校验。
+      if (release) release();
+    } finally {
+      if (marker) setTimeout(() => marker.remove(), 2500);
+      window[KEY] = false;
+    }
+  }
+})();
